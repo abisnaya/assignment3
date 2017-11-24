@@ -1,0 +1,74 @@
+from flask import Flask,request,jsonify,redirect,Markup,render_template
+import json
+import os.path
+import Sensorservice 
+from urllib.request import urlopen
+import urllib.parse
+
+app = Flask(__name__)
+
+@app.route('/api/meta/node/1')
+def get_metadata():
+    fileo=open('/data/metadata.txt','r')
+    data=fileo.read()
+   
+    return  data
+
+@app.route('/api/meta/node/sensor',methods=['GET'])
+def get_metadata_sensor():
+    with open('/data/metadata.txt','r') as fileio:
+        jsonobj=json.load(fileio)
+    node=request.args.get('node')
+    sensor=request.args.get('sensor')
+
+    if sensor=='1':
+        string = "nodeId : {0} nodeName:{1} sensorId:{2} sensorType:{3}".format(node, jsonobj['nodeName'],sensor, jsonobj['sensors']['1'])
+    else:
+        if sensor=='2':
+            string = "nodeId : {0} nodeName:{1} sensorId:{2} sensorType:{3}".format(node, jsonobj['nodeName'],sensor, jsonobj['sensors']['2'])
+        else:
+            string = "nodeId : {0} nodeName:{1} sensorId:{2} sensorType:{3}".format(node, jsonobj['nodeName'],sensor, jsonobj['sensors']['3'])
+   
+    return  jsonify(string)
+
+@app.route('/post/api/meta', methods=['POST'])
+def create_metadata():
+    
+    scriptpath = os.path.dirname(__file__)
+    filename = os.path.join(scriptpath, '/data/metadata.txt')
+
+    with open(filename,'w') as outfile:
+        json.dump(request.json, outfile)
+        
+    return jsonify(request.json)
+
+@app.route('/api/data', methods=['POST'])
+def post_data():
+    node=request.args.get('node')
+    return Sensorservice.postvalues(node)
+
+@app.route('/api/data/node/sensor', methods=['GET'])
+def get_latest():
+    node=request.args.get('node')
+    sensor=request.args.get('sensor')
+    return Sensorservice.getlatest(node,sensor)
+#/api/rollingaverage
+
+@app.route('/api/rollingaverage/node/sensor', methods=['GET'])
+def getrollavg():
+    node=request.args.get('node')
+    sensor=request.args.get('sensor')
+    url = 'http://10.10.10.3/getaverage'
+    params = urllib.parse.urlencode({'node': node, 'sensor': sensor})
+    response = urlopen('http://10.10.10.3/getaverage?%s' % params).read()
+    return response
+
+@app.route('/api/rendergraph', methods=['GET'])
+def rendergraph():
+    labels = ["January","February","March","April","May","June","July","August"]
+    values = [10,9,8,7,6,4,7,8]
+    return render_template('chart.html', values=values, labels=labels)
+
+   
+if __name__ == '__main__':
+    app.run(debug=True, host='10.10.10.2', port=80)

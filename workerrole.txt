@@ -1,0 +1,27 @@
+from flask import Flask,request
+import json
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'This is the WorkerRole'
+
+@app.route('/getaverage')
+def calculateavg():
+    sum=0
+    node=request.args.get('node')
+    sensor=request.args.get('sensor')
+    with open('/data/bjson.json','r') as jsnr:
+        lineList = jsnr.readlines()
+        for i in range(0,len(lineList)):
+            data=json.loads(lineList[i])
+            sum=sum+data["sensorData"]["1"]
+        
+
+    avg=sum/float(len(lineList))
+    return 'Average is {0}'.format(avg)
+    
+
+if __name__ == '__main__':
+    app.run(debug=True, host='10.10.10.3', port=80)
